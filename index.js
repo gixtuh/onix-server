@@ -5,9 +5,13 @@ import dotenv from 'dotenv'
 import * as cheerio from 'cheerio'
 dotenv.config()
 
-const PROXY = process.env.proxip
-? `http://${encodeURIComponent(process.env.proxuser)}:${encodeURIComponent(process.env.proxpass)}@${process.env.proxip}:${process.env.proxport}`
-: null
+let PROXY
+
+if (process.env.proxpassword == "false") {
+    PROXY = `http://${process.env.proxip}:${process.env.proxport}`
+} else {
+    PROXY = `http://${encodeURIComponent(process.env.proxuser)}:${encodeURIComponent(process.env.proxpass)}@${process.env.proxip}:${process.env.proxport}`
+}
 
 const agent = PROXY ? new HttpsProxyAgent(PROXY) : undefined
 
@@ -109,13 +113,15 @@ wss.on('connection', (client) => {
         
         try {
             const res = await fetchWithTimeout(url, { 
-                agent, 
+                //agent, 
                 headers: { 'User-Agent': 'Onix Secure Browser v1.0' } 
             }, 15000)
             const html = await res.text()
             
             setImmediate(async () => {
-                const inlined = await inlineResources(html, baseUrl, client, { agent }, {})
+                const inlined = await inlineResources(html, baseUrl, client, { 
+                    //agent
+                 }, {})
                 setTimeout(() => {
                     client.send(inlined)
                 }, 1000);
