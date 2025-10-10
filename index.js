@@ -54,7 +54,7 @@ async function inlineResources(html, baseUrl, client, fetchOpts = {}, {
     for (let i = 0; i < resources.length; i += concurrency) {
         const batch = resources.slice(i, i + concurrency)
         await Promise.allSettled(batch.map(async (r) => {
-            client.send(r.url)
+            client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Loading... <br />${r.url}</p>`)
             try {
                 const res = await fetchWithTimeout(r.url, fetchOpts, resourceTimeout)
                 if (!res || !res.ok) throw new Error(`status ${res ? res.status : 'no response'}`)
@@ -62,14 +62,14 @@ async function inlineResources(html, baseUrl, client, fetchOpts = {}, {
                 if (r.type === 'css') {
                     const txt = await res.text()
                     $(r.el).replaceWith(`<style>${txt}</style>`)
-                    client.send(r.url)
+                    client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Loading... <br />${r.url}</p>`)
                     return
                 }
                 
                 if (r.type === 'js') {
                     const txt = await res.text()
                     $(r.el).removeAttr('src').text(txt)
-                    client.send(r.url)
+                    client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Loading... <br />${r.url}</p>`)
                     return
                 }
                 
@@ -83,10 +83,10 @@ async function inlineResources(html, baseUrl, client, fetchOpts = {}, {
                     const mime = res.headers.get('content-type') || (r.type === 'img' ? 'image/png' : 'video/mp4')
                     const dataUri = `data:${mime};base64,${buf.toString('base64')}`
                     $(r.el).attr('src', dataUri)
-                    client.send(r.url)
+                    client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Loading... <br />${r.url}</p>`)
                 }
             } catch (err) {
-                client.send(err.message)
+                client.send(client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Error. <br />${err.message}</p>`))
             }
         }))
     }
@@ -94,10 +94,15 @@ async function inlineResources(html, baseUrl, client, fetchOpts = {}, {
     return $.html()
 }
 
+const serveripFETCH = await fetch("https://ifconfig.me/ip")
+const serverip = await serveripFETCH.text()
+console.log(`Got server's ip (${serverip})`)
+
 const wss = new WebSocketServer({ port: 8080 })
 console.log('🌐 WebSocket server on :8080')
 
 wss.on('connection', (client) => {
+    client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">This is an Onix Secure Browser Fetch WebSocket.<br /><br />Currently using IP Address: ${serverip}</p>`)
     client.on('message', async (event) => {
         const raw = event.toString().trim()
         let parsed
@@ -114,7 +119,7 @@ wss.on('connection', (client) => {
         try {
             const res = await fetchWithTimeout(url, { 
                 //agent, 
-                headers: { 'User-Agent': 'Onix Secure Browser v1.0' } 
+                headers: { 'User-Agent': 'Onix Secure Browser Fetch WebSocket' } 
             }, 15000)
             const html = await res.text()
             
@@ -127,7 +132,7 @@ wss.on('connection', (client) => {
                 }, 1000);
             })
         } catch (e) {
-            client.send("err: "+e.message)
+            client.send(`<h1 style="text-align: center;">Onix</h1><hr /><p style="text-align: center;">Error. <br />${e.message}</p>`)
         }
     })
 })
