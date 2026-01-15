@@ -59,6 +59,7 @@ const PROXY_BASE = "${proxyBase}";
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       if (params) {
+        alert(form.action + "?" + new URLSearchParams(formData).toString())
         finalUrl = form.action + "?" + new URLSearchParams(formData).toString()
       }
     }
@@ -249,6 +250,10 @@ app.get("/", async (req, res) => {
                 padding: 10px;
                 text-align: center;
             }
+            
+            input {
+                width: 500px;
+            }
         </style>
         </head>
         <body>
@@ -259,11 +264,19 @@ app.get("/", async (req, res) => {
             <p>
                 Hello world!<br/><br/>
                 This is <strong>Onix</strong>, AKA Onix Secure Browser, it's a proxy that lets you browse the internet without having to worry about your privacy. All the fetching is done on the proxy server!<br /><br/>
-                In order to start browsing, either click <a href=${proxyBase}/?url=https://mojeek.com>here</a>, or add <code>?url=htps://example.com</code> after this URL.
+                In order to start browsing, add <code>?url=htps://example.com</code> after this URL, or you can enter something in the input box below and browse.<br /><br />
             </p>
+            <input id="browse" placeholder="Enter anything then hit Enter to browse on DuckDuckGo"></input>
+            <script>
+                document.getElementById("browse").addEventListener("keydown", (event) => {
+                    if (event.key == "Enter") {
+                        window.location.href = "${proxyBase}/?url=https://duckduckgo.com/?q=" + document.getElementById("browse").value
+                    }
+                })
+            </script>
         </div>
         <header>
-                If a page has redirected you here, this means that a website has tried redirecting you to a relative link, but the URL was tied to this proxy.
+                This project is currently in beta! Expect bugs.
         </header>
 
         </body>
@@ -301,4 +314,3 @@ if (contentType.includes("text/html")) {
 server.listen(3000, () => {
     console.log("🧠 Onix recursive HTTP proxy online");
 });
-
