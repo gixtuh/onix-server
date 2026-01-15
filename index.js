@@ -59,7 +59,6 @@ const PROXY_BASE = "${proxyBase}";
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       if (params) {
-        alert(form.action + "?" + new URLSearchParams(formData).toString())
         finalUrl = form.action + "?" + new URLSearchParams(formData).toString()
       }
     }
@@ -302,3 +301,4 @@ if (contentType.includes("text/html")) {
 server.listen(3000, () => {
     console.log("🧠 Onix recursive HTTP proxy online");
 });
+
