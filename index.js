@@ -260,6 +260,8 @@ app.get("/", async (req, res) => {
         </head>
         <body>
 
+        <title>Onix Secure Browser</title>
+
         <div class="container">
             <h1>Onix</h1><h2>v1.1</h2>
             <hr />
@@ -298,7 +300,7 @@ app.get("/", async (req, res) => {
     }
 
     try {
-        const response = await fetch(target, { headers: { "User-Agent": "Onix Secure Browser" } });
+        const response = await fetch(target, { headers: { "User-Agent": "output" } });
         let body = await response.text();
         const contentType = response.headers.get("content-type") || "";
 
