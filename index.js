@@ -253,24 +253,34 @@ app.get("/", async (req, res) => {
             
             input {
                 width: 500px;
+                border-radius: 5px;
+                margin-bottom: 5px
             }
         </style>
         </head>
         <body>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.0</h2>
+            <h1>Onix</h1><h2>v1.1</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
                 This is <strong>Onix</strong>, AKA Onix Secure Browser, it's a proxy that lets you browse the internet without having to worry about your privacy. All the fetching is done on the proxy server!<br /><br/>
-                In order to start browsing, add <code>?url=htps://example.com</code> after this URL, or you can enter something in the input box below and browse.<br /><br />
+                In order to start browsing, add <code>?url=htps://example.com</code> after this URL, or you can enter something in any of the 2 input boxes below and browse.<br /><br />
             </p>
             <input id="browse" placeholder="Enter anything then hit Enter to browse on DuckDuckGo"></input>
             <script>
                 document.getElementById("browse").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
                         window.location.href = "${proxyBase}/?url=https://duckduckgo.com/?q=" + document.getElementById("browse").value
+                    }
+                })
+            </script>
+            <input id="url" placeholder="Enter URL: "></input>
+            <script>
+                document.getElementById("url").addEventListener("keydown", (event) => {
+                    if (event.key == "Enter") {
+                        window.location.href = "${proxyBase}/?url=" + document.getElementById("url").value
                     }
                 })
             </script>
@@ -288,7 +298,7 @@ app.get("/", async (req, res) => {
     }
 
     try {
-        const response = await fetch(target, { headers: { "User-Agent": "output" } });
+        const response = await fetch(target, { headers: { "User-Agent": "Onix Secure Browser" } });
         let body = await response.text();
         const contentType = response.headers.get("content-type") || "";
 
