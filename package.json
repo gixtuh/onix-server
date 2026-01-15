@@ -1,5 +1,5 @@
 {
-  "name": "proxy",
+  "name": "onix-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,11 +11,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "cheerio": "^1.1.2",
-    "dotenv": "^17.2.3",
-    "http-proxy-agent": "^5.0.0",
-    "https-proxy-agent": "^5.0.1",
+    "express": "^5.2.1",
+    "http": "^0.0.1-security",
     "node-fetch": "^3.3.2",
-    "ws": "^8.18.3"
+    "url": "^0.11.4",
+    "ws": "^8.19.0"
   }
 }
