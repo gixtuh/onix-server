@@ -5,7 +5,7 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
 const app = express();
-const proxyBase = "https://onix-server-official.onrender.com";
+const proxyBase = "https://onix-server-official.onrender.com';
 
 // npm i express node-fetch url http ws
 
@@ -150,14 +150,14 @@ function injectBase(html, enhancer) {
     const actionUrl = form.action || REAL_BASE;
     const abs = new URL(actionUrl, REAL_BASE).href;
 
+
     let finalUrl = abs;
 
     if ((form.method || "GET").toUpperCase() === "GET") {
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       if (params) {
-        //alert(form.action + "?" + new URLSearchParams(formData).toString())
-        finalUrl = form.action + "?" + new URLSearchParams(formData).toString()
+        finalUrl = "${proxyBase}" + "${enhancer == undefined ? "/?url=" : "/?enhance=stop&url="}" + new URLSearchParams(new URL(form.action).search).get("url") + encodeURIComponent("?" + new URLSearchParams(formData).toString())
       }
     }
 
@@ -416,7 +416,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.2</h2>
+            <h1>Onix</h1><h2>v1.3</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
@@ -476,7 +476,7 @@ app.get("/", async (req, res) => {
         const mediaExtensions = /\.(png|jpe?g|gif|webp|bmp|ico|mp4|webm|mp3|wav|ogg|ttf|woff2?)$/i;
         const isMedia = mediaExtensions.test(realUrl.pathname);
 
-        const response = await fetch(target, { headers: { "User-Agent": "output" } });
+        const response = await fetch(target, { headers: { "User-Agent": "onix secure browser" } });
         const contentType = response.headers.get("content-type") || "";
 
         if (isMedia || contentType.startsWith("image/") || contentType.startsWith("audio/") || contentType.startsWith("video/")) {
