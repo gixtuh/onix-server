@@ -156,7 +156,7 @@ function injectBase(html, enhancer) {
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       if (params) {
-        alert(form.action + "?" + new URLSearchParams(formData).toString())
+        //alert(form.action + "?" + new URLSearchParams(formData).toString())
         finalUrl = form.action + "?" + new URLSearchParams(formData).toString()
       }
     }
