@@ -457,7 +457,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.4.1</h2>
+            <h1>Onix</h1><h2>v1.4.2</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
@@ -544,7 +544,14 @@ app.get("/", async (req, res) => {
                 body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
             }
 
-            body = injectBase(body, req.query.enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, getServerIP());
+            const serverip = await getServerIP();
+            body = injectBase(
+                body, 
+                req.query.enhance, 
+                req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, 
+                serverip
+            );
+
 
             // Rewrite <link>, <iframe>, <img>
             body = body.replace(/<(link|iframe|img)\b[^>]*(href|src)=["']([^"']+)["'][^>]*>/gi,
