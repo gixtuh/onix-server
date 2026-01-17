@@ -5,7 +5,7 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
 const app = express();
-const proxyBase = "http://127.0.0.1:3000";
+const proxyBase = "http://onix-server-official.onrender.com";
 
 // npm i express node-fetch url http ws
 
@@ -534,3 +534,4 @@ app.get("/", async (req, res) => {
 server.listen(3000, () => {
     console.log("🧠 Onix recursive HTTP proxy online");
 });
+
