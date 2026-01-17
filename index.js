@@ -5,7 +5,7 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
 const app = express();
-const proxyBase = "https://onix-server-official.onrender.com";
+const proxyBase = "http://127.0.0.1:3000";
 
 // npm i express node-fetch url http ws
 
@@ -344,6 +344,12 @@ server.on("upgrade", (req, socket, head) => {
 });
 app.get("/", async (req, res) => {
     const target = req.query.url;
+
+    if (target != undefined) {
+      console.log(target)
+    } else {
+      console.log("/")
+    }
 
     try {
         if (new URL(target).host == new URL(proxyBase).host) {
