@@ -5,7 +5,7 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
 const app = express();
-const proxyBase = "https://onix-server-official.onrender.com";
+const proxyBase = "https://onix-server-official.onrender.com"; // CHANGE THIS IF YOURE FORKING THIS REPO
 
 // npm i express node-fetch url http ws
 
@@ -29,30 +29,50 @@ function rewriteScriptSrc(html, baseUrl, proxyBase, enhance) {
 
 
 // browser-side code inside injectBase should NOT contain this function
-function injectBase(html, enhancer) {
+function injectBase(html, enhancer, clientip, serverip) {
   console.log(`BaseInjector: "${enhancer}"`)
   const injection = `
-  ${enhancer == undefined ? `
-  <style>
+<style>
+.HEADERIP {
+  opacity: 1;
+  top: 0;
+  position: fixed;
+  width: 100%;
+  padding: 10px;
+  font-family: sans-serif;
+  z-index: 100000;
+  text-align: center;
+  background-color: #e8e8e8ff;
+  color: black;
+  animation: appear 6s ease forwards;
+}
 
-            *{
-                animation: appear 0.8s ease-out 0.2s both; 
-            }
+@keyframes appear {
+  0% {
+    transform: translateY(-70px);
+  }
 
-            @keyframes appear {
-                0% { 
-                    opacity: 0; 
-                    filter: blur(15px); 
-                    transform: scale(0.95) translateY(20px); 
-                }
-                100% { 
-                    opacity: 1; 
-                    filter: blur(0); 
-                    transform: scale(1) translateY(0); 
-                }
-            }
-        </style>
-    ` : ""}
+  33.3333% {
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+
+  66.6666% {
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+
+  100% {
+    transform: translateY(-70px);
+  }
+}
+</style>
+
+  <header class="HEADERIP">
+  Onix Secure Browser
+  <hr />
+  ${clientip} --> ${serverip}<br />
+  </header>
 <script>
 (() => {
   const PROXY_BASE = "${proxyBase}";
@@ -187,11 +207,13 @@ function rewriteJSUrls(html, baseUrl, proxyBase) {
                 /(['"`])((?:https?:\/\/|\/)[^'"`\s]+)\1/g,
                 (m, quote, url) => {
                     try {
-                        // skip already proxied
-                        if (url.startsWith(proxyBase)) return m;
+                        const abs = new URL(url, baseUrl).href;
+                        // ✅ skip if internal (same host)
+                        if (new URL(abs).host === new URL(baseUrl).host) return m;
+                        // ✅ skip if already proxied
+                        if (abs.startsWith(proxyBase)) return m;
 
-                        const resolved = new URL(url, baseUrl).href;
-                        const proxied = `${proxyBase}/?url=${encodeURIComponent(resolved)}`;
+                        const proxied = `${proxyBase}/?url=${encodeURIComponent(abs)}`;
                         return `${quote}${proxied}${quote}`;
                     } catch {
                         return m;
@@ -203,6 +225,7 @@ function rewriteJSUrls(html, baseUrl, proxyBase) {
         }
     );
 }
+
 
 function buildServerProxyUrl(url, enhance) {
   const proxied = `${proxyBase}/?url=${encodeURIComponent(url)}`;
@@ -267,13 +290,14 @@ function rewriteWindowLocation(html, proxyBase, baseUrl, enhance) {
             try {
                 const abs = new URL(url, baseUrl).href;
                 if (abs.startsWith(proxyBase)) return match;
-                return `${attr}="${buildServerProxyUrl(absolute, enhance)}"`;
+                return `window.location.href=${quote}${buildServerProxyUrl(abs, enhance)}${quote}`;
             } catch {
                 return match;
             }
         }
     );
 }
+
 
 
 
@@ -422,19 +446,19 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.3</h2>
+            <h1>Onix</h1><h2>v1.4</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
                 This is <strong>Onix</strong>, AKA Onix Secure Browser, it's a proxy that lets you browse the internet without having to worry about your privacy. All the fetching is done on the proxy server!<br /><br/>
-                In order to start browsing, add <code>?url=htps://example.com</code> after this URL, or you can enter something in any of the 2 input boxes below and browse.<br /><br />
+                In order to start browsing, add <code>?url=https://example.com</code> after this URL, or you can enter something in any of the 2 input boxes below and browse.<br /><br />
             </p>
             <input id="browse" placeholder="Enter anything then hit Enter to browse on DuckDuckGo"></input>
             <input id="url" placeholder="Enter URL: "></input>
             <button id="gotoddg">Go to DuckDuckGo!</button>
             
             <br />
-            <input id="breakwebsiteslol" type="checkbox">Enable enhance (COULD BREAK WEBSITES)</button>
+            <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements (disabling this could pose more risks but might extend compatibility)</button>
             <script>
                 document.getElementById("browse").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
@@ -495,15 +519,21 @@ app.get("/", async (req, res) => {
         // HTML
         let body = await response.text();
         if (contentType.includes("text/html")) {
-            body = rewriteScriptSrc(body, target, proxyBase, req.query.enhance);
+            if (req.query.fetch !== undefined) {
+              res.set("Content-Type", contentType);
+              res.send(body);
+              return;
+            };
             body = rewriteUrls(body, target, proxyBase, req.query.enhance);
+            body = rewriteScriptSrc(body, target, proxyBase, req.query.enhance);
 
             if (!req.query.enhance || req.query.enhance.search("stop") === -1) {
+                console.log("ok")
                 body = rewriteJSUrls(body, target, proxyBase, req.query.enhance);
+                body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
             }
 
-            body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
-            body = injectBase(body, req.query.enhance);
+            body = injectBase(body, req.query.enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, req.socket.localAddress);
 
             // Rewrite <link>, <iframe>, <img>
             body = body.replace(/<(link|iframe|img)\b[^>]*(href|src)=["']([^"']+)["'][^>]*>/gi,
@@ -534,5 +564,3 @@ app.get("/", async (req, res) => {
 server.listen(3000, () => {
     console.log("🧠 Onix recursive HTTP proxy online");
 });
-
-
