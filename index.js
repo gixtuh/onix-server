@@ -5,9 +5,20 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
 const app = express();
-const proxyBase = "https://onix-server-official.onrender.com"; // CHANGE THIS IF YOURE FORKING THIS REPO
+const proxyBase = "https://onix-server-official.onrender.com"; // CHANGE THIS IF YOURE FORKING MY REPO
+// public url: https://onix-server-official.onrender.com
 
 // npm i express node-fetch url http ws
+
+async function getServerIP() {
+  try {
+    const res = await fetch("https://ifconfig.me/ip");
+    const ip = (await res.text()).trim();
+    return ip;
+  } catch {
+    return "unknown";
+  }
+}
 
 // Node-side function
 function rewriteScriptSrc(html, baseUrl, proxyBase, enhance) {
@@ -446,7 +457,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.4</h2>
+            <h1>Onix</h1><h2>v1.4.1</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
@@ -533,7 +544,7 @@ app.get("/", async (req, res) => {
                 body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
             }
 
-            body = injectBase(body, req.query.enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, req.socket.localAddress);
+            body = injectBase(body, req.query.enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, getServerIP());
 
             // Rewrite <link>, <iframe>, <img>
             body = body.replace(/<(link|iframe|img)\b[^>]*(href|src)=["']([^"']+)["'][^>]*>/gi,
