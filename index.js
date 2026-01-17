@@ -60,21 +60,24 @@ function injectBase(html, enhancer, clientip, serverip) {
 
 @keyframes appear {
   0% {
-    transform: translateY(-70px);
+    transform: translateY(-100px);
   }
 
   33.3333% {
+    opacity: 1;
     filter: blur(0px);
     transform: translateY(0px);
   }
 
   66.6666% {
+    opacity: 1;
     filter: blur(0px);
     transform: translateY(0px);
   }
 
   100% {
-    transform: translateY(-70px);
+    opacity: 0;
+    transform: translateY(-100px);
   }
 }
 </style>
@@ -457,7 +460,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.4.2</h2>
+            <h1>Onix</h1><h2>v1.4.3</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
