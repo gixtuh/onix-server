@@ -420,6 +420,11 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
+  const proxyBase =
+        req.headers["x-forwarded-proto"] && req.headers["x-forwarded-host"]
+            ? `${req.headers["x-forwarded-proto"]}://${req.headers["x-forwarded-host"]}`
+            : `http://${req.headers.host}`;
+
     wss.handleUpgrade(req, socket, head, (ws) => {
         // send deprecation message then close
         ws.send(`
@@ -571,7 +576,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.1</h2>
+            <h1>Onix</h1><h2>v1.5.2</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
