@@ -517,9 +517,9 @@ app.get("/", async (req, res) => {
 let message;
 
 if (req.ip.includes("127.0.0.1") || req.ip === serverIp) {
-  message = "- oh look it's you aka " + (req.ip.includes("127.0.0.1") ? "the localhost " + req.ip : " "+req.ip);
+  message = "- oh look it's you aka " + (req.ip.includes("127.0.0.1") ? "the localhost " + req.ip : req.ip);
 } else {
-  message = req.ip;
+  message = " "+req.ip;
 }
 
 console.log(`it's uhh${message}`);
