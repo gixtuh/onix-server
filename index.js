@@ -4,9 +4,8 @@ import { URL } from "url";
 import http from "http";
 import WebSocket, { WebSocketServer } from "ws"; // ws package
 
-const app = express();
-const proxyBase = "https://onix-server-official.onrender.com"; // CHANGE THIS IF YOURE FORKING MY REPO
-// public url: https://onix-server-official.onrender.com
+const app = express()
+app.set("trust proxy", true);
 
 // npm i express node-fetch url http ws
 
@@ -51,7 +50,7 @@ function rewriteStandaloneJS(js, baseUrl, proxyBase, enhance) {
         // skip already proxied
         if (abs.startsWith(proxyBase)) return m;
 
-        return `${quote}${buildServerProxyUrl(abs, enhance)}${quote}`;
+        return `${quote}${buildServerProxyUrl(abs, enhance, proxyBase)}${quote}`;
       } catch {
         return m;
       }
@@ -74,7 +73,7 @@ function rewriteStandaloneCSS(css, baseUrl, proxyBase, enhance) {
 
       try {
         const abs = new URL(clean, baseUrl).href;
-        return `url("${buildServerProxyUrl(abs, enhance)}")`;
+        return `url("${buildServerProxyUrl(abs, enhance, proxyBase)}")`;
       } catch {
         return `url(${raw})`;
       }
@@ -84,7 +83,7 @@ function rewriteStandaloneCSS(css, baseUrl, proxyBase, enhance) {
     .replace(/@import\s+(?:url\()?['"]([^'"]+)['"]\)?/gi, (m, url) => {
       try {
         const abs = new URL(url, baseUrl).href;
-        return `@import url("${buildServerProxyUrl(abs, enhance)}")`;
+        return `@import url("${buildServerProxyUrl(abs, enhance, proxyBase)}")`;
       } catch {
         return m;
       }
@@ -97,7 +96,7 @@ function rewriteStandaloneCSS(css, baseUrl, proxyBase, enhance) {
 
 
 // browser-side code inside injectBase should NOT contain this function
-function injectBase(html, enhancer, clientip, serverip) {
+function injectBase(html, enhancer, clientip, serverip, proxyBase) {
   console.log(`BaseInjector: "${enhancer}"`)
   const injection = `
 <script>
@@ -131,6 +130,21 @@ function injectBase(html, enhancer, clientip, serverip) {
         animation: appear 5s ease forwards;
       }
 
+      .switchButton__onix {
+        border-radius: 10px;
+        border: 1px solid #000000;
+        background-color: #a3a3a3;
+        color: black;
+        transition: all 0.1s ease;
+      }
+
+      .switchButton__onix:hover {
+        background-color: #747474;
+      }
+      .switchButton__onix:active {
+        transform: scale(0.95)
+      }
+
       @keyframes appear {
         0% { transform: translateY(-100px); opacity: 1; }
         33% { transform: translateY(0); opacity: 1; }
@@ -141,7 +155,7 @@ function injectBase(html, enhancer, clientip, serverip) {
 
     <header>
       <header>
-  Onix Secure Browser | ${enhancer == undefined ? `<button onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
+  Onix Secure Browser | ${enhancer == undefined ? `<button class= "switchButton__onix" onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button class= "switchButton__onix" onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
   ${enhancer == undefined ? "Switch to unenhanced version" : "Enhance now"}</button><br />You are currently using the ${enhancer == undefined ? "enhanced version" : "unenhanced version"}
 
       <hr />
@@ -158,7 +172,9 @@ function injectBase(html, enhancer, clientip, serverip) {
   const PROXY_BASE = "${proxyBase}";
   const urlParams = new URLSearchParams(window.location.search);
   const REAL_BASE = urlParams.get("url");
-  const ENHANCE = "${enhancer}";
+  const ENHANCE =
+  "${enhancer}" === "undefined" ? undefined : "${enhancer}";
+
 
   if (ENHANCE && ENHANCE !== "stop") {
     // Block all WebSocket connections
@@ -177,9 +193,15 @@ function injectBase(html, enhancer, clientip, serverip) {
   if (!REAL_BASE) return;
 
   function buildProxyUrl(target) {
-    var proxied = PROXY_BASE + "/?url=" + encodeURIComponent(target);
-    return ENHANCE ? proxied + "&enhance=" + encodeURIComponent(ENHANCE) : proxied;
+  try {
+    const abs = new URL(target, REAL_BASE).href;
+    // ⚡ skip if already proxied
+    if (abs.startsWith(PROXY_BASE)) return abs;
+    return PROXY_BASE + "/?url=" + encodeURIComponent(abs) + (ENHANCE ? "&enhance=" + encodeURIComponent(ENHANCE) : "");
+  } catch {
+    return target; // fallback
   }
+}
 
 
 
@@ -321,9 +343,11 @@ function rewriteJSUrls(html, baseUrl, proxyBase) {
 }
 
 
-function buildServerProxyUrl(url, enhance) {
+function buildServerProxyUrl(url, enhance, proxyBase) {
   const proxied = `${proxyBase}/?url=${encodeURIComponent(url)}`;
-  return enhance ? `${proxied}&enhance=${encodeURIComponent(enhance)}` : proxied;
+  return enhance !== undefined && enhance !== "undefined"
+  ? `${proxied}&enhance=${encodeURIComponent(enhance)}`
+  : proxied;
 }
 
 
@@ -342,7 +366,7 @@ function proxify(link, baseUrl, proxyBase, enhance) {
     if (abs.startsWith(proxyBase)) return abs; // already proxied
     const host = new URL(abs).host;
     if (host === new URL(proxyBase).host) return abs;   // skip local redirects
-    return buildServerProxyUrl(abs, enhance);
+    return buildServerProxyUrl(abs, enhance, proxyBase);
   } catch {
     return link;
   }
@@ -378,7 +402,7 @@ function rewriteWindowLocation(html, proxyBase, baseUrl, enhance) {
             try {
                 const abs = new URL(url, baseUrl).href;
                 if (abs.startsWith(proxyBase)) return match;
-                return `window.location.href=${quote}${buildServerProxyUrl(abs, enhance)}${quote}`;
+                return `window.location.href=${quote}${buildServerProxyUrl(abs, enhance, proxyBase)}${quote}`;
             } catch {
                 return match;
             }
@@ -457,12 +481,22 @@ server.on("upgrade", (req, socket, head) => {
 
 
 app.get("/", async (req, res) => {
+    // sanitize the query param right away
+    const enhance =
+      req.query.enhance === undefined || req.query.enhance === "undefined"
+        ? undefined
+        : req.query.enhance;
+
+    const proxyBase = req.headers["x-forwarded-proto"] && req.headers["x-forwarded-host"]
+      ? `${req.headers["x-forwarded-proto"]}://${req.headers["x-forwarded-host"]}`
+      : `${req.protocol}://${req.headers.host}`;
+
     const target = req.query.url;
 
     if (target != undefined) {
-      console.log(target)
+        console.log(target)
     } else {
-      console.log("/")
+        console.log("/")
     }
 
     try {
@@ -473,6 +507,7 @@ app.get("/", async (req, res) => {
 
     // 1️⃣ If no target, show homepage
     if (!target) {
+        const serverip = await getServerIP();
         return res.send(`<!DOCTYPE html>
         <html>
         <head>
@@ -536,7 +571,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5</h2>
+            <h1>Onix</h1><h2>v1.5.1</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
@@ -548,7 +583,8 @@ app.get("/", async (req, res) => {
             <button id="gotoddg">Go to DuckDuckGo!</button>
             
             <br />
-            <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements (disabling this could pose more risks but might extend compatibility)</button>
+            <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements (disabling this could pose more risks but might extend compatibility)</button><br /><br />
+            Proxy IP Address: ${serverip}<br/><strong style="color:red;">! THIS IP IS SHARED WITH EVERYONE AND DOESN'T CHANGE !</strong>
             <script>
                 document.getElementById("browse").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
@@ -608,6 +644,7 @@ app.get("/", async (req, res) => {
 
         // HTML
         let body = await response.text();
+        const serverip = await getServerIP();
         if (contentType.includes("text/html")) {
             if (req.query.fetch !== undefined) {
               res.set("Content-Type", contentType);
@@ -623,12 +660,12 @@ app.get("/", async (req, res) => {
                 body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
             }
 
-            const serverip = await getServerIP();
             body = injectBase(
                 body, 
                 req.query.enhance, 
                 req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, 
-                serverip
+                serverip,
+                proxyBase
             );
 
 
@@ -644,7 +681,7 @@ app.get("/", async (req, res) => {
                 const clean = raw.replace(/['"]/g, "").trim();
                 if (clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("http")) return `url(${raw})`;
                 const abs = new URL(clean, target).href;
-                return `url("${buildServerProxyUrl(abs, req.query.enhance)}")`;
+                return `url("${buildServerProxyUrl(abs, req.query.enhance, proxyBase)}")`;
             });
         }
 
@@ -670,6 +707,18 @@ app.get("/", async (req, res) => {
 });
 
 
-server.listen(3000, () => {
-    console.log("🧠 Onix recursive HTTP proxy online");
+server.listen(3000, async () => {
+console.log("")
+console.log("")
+console.log(" ██████╗ ███╗   ██╗██╗██╗  ██╗")
+console.log("██╔═══██╗████╗  ██║██║╚██╗██╔╝")
+console.log("██║   ██║██╔██╗ ██║██║ ╚███╔╝ ")
+console.log("██║   ██║██║╚██╗██║██║ ██╔██╗ ")
+console.log("╚██████╔╝██║ ╚████║██║██╔╝ ██╗")
+console.log(" ╚═════╝ ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝")
+console.warn("Your IP Address is now being used as a proxy on port 3000")
+console.warn("Oh and please for gods sake get a VPN before tunneling this with idk cloudflared maybe")
+console.log()
+console.log("getting your ip just so you knew if your ip is proxified")
+console.log(`ok ip is ${await getServerIP()}`)
 });
