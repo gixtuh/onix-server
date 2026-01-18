@@ -155,8 +155,9 @@ function injectBase(html, enhancer, clientip, serverip, proxyBase) {
 
     <header>
       <header>
-  Onix Secure Browser | ${enhancer == undefined ? `<button class= "switchButton__onix" onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button class= "switchButton__onix" onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
-  ${enhancer == undefined ? "Switch to unenhanced version" : "Enhance now"}</button><br />You are currently using the ${enhancer == undefined ? "enhanced version" : "unenhanced version"}
+  Onix Secure Browser | ${!enhancer ? `<button class= "switchButton__onix" onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button class= "switchButton__onix" onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
+  ${enhancer && enhancer === "stop" ? "Enhance now" : "Switch to unenhanced version."}</button><br />You are currently using the ${enhancer && enhancer === "stop" ? "unenhanced version" : "enhanced version"}
+
 
       <hr />
       ${clientip} → ${serverip}
@@ -293,7 +294,7 @@ function injectBase(html, enhancer, clientip, serverip, proxyBase) {
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       if (params) {
-        finalUrl = "${proxyBase}" + "${enhancer == undefined ? "/?url=" : "/?enhance=stop&url="}" + new URLSearchParams(new URL(form.action).search).get("url") + encodeURIComponent("?" + new URLSearchParams(formData).toString())
+        finalUrl = "${proxyBase}" + "${enhancer == undefined ? "/?url=" : "/?enhance="+enhancer+"&url="}" + new URLSearchParams(new URL(form.action).search).get("url") + encodeURIComponent("?" + new URLSearchParams(formData).toString())
       }
     }
 
@@ -517,58 +518,13 @@ app.get("/", async (req, res) => {
         <html>
         <head>
         <style>
-            body {
-                text-align: center;
-                font-family: sans-serif;
-                background-color: #f4f4f4;
-                padding-top: 50px;
-                margin: 0;
-                display: flex;
-                justify-content: center;
-            }
-
-            .container {
-                max-width: 600px;
-                /* added a 0.2s delay so the user sees the start of the animation */
-                animation: appear 0.8s ease-out 0.2s both; 
-            }
-
-            @keyframes appear {
-                0% { 
-                    opacity: 0; 
-                    filter: blur(15px); 
-                    transform: scale(0.95) translateY(20px); 
-                }
-                100% { 
-                    opacity: 1; 
-                    filter: blur(0); 
-                    transform: scale(1) translateY(0); 
-                }
-            }
-            
-            header {
-                animation: appear 0.8s ease-out 0.2s both; 
-                background-color: grey;
-                position: fixed;
-                width: 100%;
-                bottom: 0px;
-                left: 0px;
-                align-items: center;
-                padding: 10px;
-                text-align: center;
-            }
-            
-            input {
-                width: 500px;
-                border-radius: 5px;
-                margin-bottom: 5px
-            }
-            #breakwebsiteslol {
-              width: 20px;
-            }
-            #gotoddg {
-              margin-bottom: 5px;
-            }
+            body { text-align:center; font-family:sans-serif; background-color:#f4f4f4; padding-top:50px; margin:0; display:flex; justify-content:center; }
+            .container { max-width:600px; animation: appear 0.8s ease-out 0.2s both; }
+            @keyframes appear { 0% {opacity:0;filter:blur(15px);transform:scale(0.95) translateY(20px);} 100% {opacity:1;filter:blur(0);transform:scale(1) translateY(0);} }
+            header { animation: appear 0.8s ease-out 0.2s both; background-color: grey; position: fixed; width:100%; bottom:0px; left:0px; align-items:center; padding:10px; text-align:center; }
+            input { width:500px; border-radius:5px; margin-bottom:5px }
+            #breakwebsiteslol { width:20px; }
+            #gotoddg { margin-bottom:5px; }
         </style>
         </head>
         <body>
@@ -576,7 +532,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.2</h2>
+            <h1>Onix</h1><h2>v1.5.3</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
@@ -597,22 +553,16 @@ app.get("/", async (req, res) => {
                         window.location.href = \`${proxyBase}/?url=https://duckduckgo.com/?q=\${document.getElementById("browse").value}\${enhance}\`;
                     }
                 })
-            </script>
-            <script>
                 document.getElementById("gotoddg").addEventListener("click", (event) => {
                   const enhance = document.getElementById("breakwebsiteslol").checked ? "" : "&enhance=stop";
                   window.location.href = \`${proxyBase}/?url=https://duckduckgo.com\${enhance}\`;
                 })
-            </script>
-            <script>
-            
                 document.getElementById("url").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
                         const enhance = document.getElementById("breakwebsiteslol").checked ? "" : "&enhance=stop";
                         window.location.href = \`${proxyBase}/?url=\${document.getElementById("url").value}\${enhance}\`;
                     }
                 })
-
             </script>
         </div>
         <header>
@@ -624,7 +574,7 @@ app.get("/", async (req, res) => {
     }
 
     // 2️⃣ Validate protocol
-    if (!target.startsWith("http://") && !target.startsWith("https://")) {
+    if (!target.startsWith("http://") && !target.startsWith("https://") && !target.startsWith("data:image")) {
         return res.status(400).send("invalid protocol");
     }
 
@@ -641,70 +591,43 @@ app.get("/", async (req, res) => {
         const contentType = response.headers.get("content-type") || "";
 
         if (isMedia || contentType.startsWith("image/") || contentType.startsWith("audio/") || contentType.startsWith("video/")) {
-            // Binary → arrayBuffer
             const buffer = await response.arrayBuffer();
             res.set("Content-Type", contentType);
             return res.send(Buffer.from(buffer));
         }
 
-        // HTML
         let body = await response.text();
         const serverip = await getServerIP();
-        if (contentType.includes("text/html")) {
-            if (req.query.fetch !== undefined) {
-              res.set("Content-Type", contentType);
-              res.send(body);
-              return;
-            };
-            body = rewriteUrls(body, target, proxyBase, req.query.enhance);
-            body = rewriteScriptSrc(body, target, proxyBase, req.query.enhance);
 
-            if (!req.query.enhance || req.query.enhance.search("stop") === -1) {
-                console.log("ok")
-                body = rewriteJSUrls(body, target, proxyBase, req.query.enhance);
-                body = rewriteWindowLocation(body, proxyBase, target, req.query.enhance);
+        // HTML
+        if (contentType.includes("text/html")) {
+            body = rewriteUrls(body, target, proxyBase, enhance);
+            body = rewriteScriptSrc(body, target, proxyBase, enhance);
+
+            if (!enhance || enhance.search("stop") === -1 || enhance === "proxyExternal") {
+                body = rewriteJSUrls(body, target, proxyBase, enhance);
+                body = rewriteWindowLocation(body, proxyBase, target, enhance);
             }
 
-            body = injectBase(
-                body, 
-                req.query.enhance, 
-                req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, 
-                serverip,
-                proxyBase
-            );
+            body = injectBase(body, enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, serverip, proxyBase);
 
-
-            // Rewrite <link>, <iframe>, <img>
             body = body.replace(/<(link|iframe|img)\b[^>]*(href|src)=["']([^"']+)["'][^>]*>/gi,
-                (match, tag, attr, url) => match.replace(url, proxify(url, target, proxyBase, req.query.enhance))
+                (match, tag, attr, url) => match.replace(url, proxify(url, target, proxyBase, enhance))
             );
         }
 
-        // CSS
-        else if (contentType.includes("text/css")) {
-            body = body.replace(/url\(([^)]+)\)/gi, (_, raw) => {
-                const clean = raw.replace(/['"]/g, "").trim();
-                if (clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("http")) return `url(${raw})`;
-                const abs = new URL(clean, target).href;
-                return `url("${buildServerProxyUrl(abs, req.query.enhance, proxyBase)}")`;
-            });
+        // JS standalone rewrite
+        if (enhance === "proxyExternal" && contentType.includes("javascript")) {
+            body = rewriteStandaloneJS(body, target, proxyBase, enhance);
         }
 
-        // JS
-        if (req.query.enhance == undefined && false) {
-        if (contentType.includes("javascript")) {
-          body = rewriteStandaloneJS(body, target, proxyBase, req.query.enhance);
+        // CSS standalone rewrite
+        if (enhance === "proxyExternal" && contentType.includes("text/css")) {
+            body = rewriteStandaloneCSS(body, target, proxyBase, enhance);
         }
-
-        // CSS
-        else if (contentType.includes("text/css")) {
-          body = rewriteStandaloneCSS(body, target, proxyBase, req.query.enhance);
-        }
-      }
 
         res.set("Content-Type", contentType);
         res.send(body);
-
 
     } catch (e) {
         res.status(500).send("fetch failed: " + e.message);
