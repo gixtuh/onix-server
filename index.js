@@ -536,7 +536,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.4.3</h2>
+            <h1>Onix</h1><h2>v1.5</h2>
             <hr />
             <p>
                 Hello world!<br/><br/>
