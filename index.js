@@ -9,11 +9,14 @@ app.set("trust proxy", true);
 
 // npm i express node-fetch url http ws
 
+let cachedServerIp = null;
+
 async function getServerIP() {
+  if (cachedServerIp) return cachedServerIp;
   try {
     const res = await fetch("https://ifconfig.me/ip");
-    const ip = (await res.text()).trim();
-    return ip;
+    cachedServerIp = (await res.text()).trim();
+    return cachedServerIp;
   } catch {
     return "unknown";
   }
@@ -22,7 +25,6 @@ async function getServerIP() {
 // Node-side function
 function rewriteScriptSrc(html, baseUrl, proxyBase, enhance) {
   const regex = /<script\b([^>]*?)\bsrc=(["'])([^"']+)\2([^>]*)>/gi;
-
   return html.replace(regex, function(match, before, quote, src, after) {
     let proxied;
     try {
@@ -511,6 +513,17 @@ app.get("/", async (req, res) => {
 
     const target = req.query.url;
 
+    const serverIp = await getServerIP();
+let message;
+
+if (req.ip.includes("127.0.0.1") || req.ip === serverIp) {
+  message = "- oh look it's you aka " + (req.ip.includes("127.0.0.1") ? "the localhost " + req.ip : " "+req.ip);
+} else {
+  message = req.ip;
+}
+
+console.log(`it's uhh${message}`);
+
     if (target != undefined) {
         console.log(target)
     } else {
@@ -545,7 +558,7 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.4</h2>
+            <h1>Onix</h1><h2>v1.5.5</h2>
             <hr />
             <p>
                 This is <strong>Onix</strong>, also known as <strong>Onix Secure Browser</strong>, it's a proxy that lets you browse without worrying about DNS website blocking.<br /><br/>
@@ -638,7 +651,7 @@ app.get("/", async (req, res) => {
                 body = rewriteWindowLocation(body, proxyBase, target, enhance);
             }
 
-            body = injectBase(body, enhance, req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress, serverip, proxyBase);
+            body = injectBase(body, enhance, req.ip, serverip, proxyBase);
 
             body = body.replace(/<(link|iframe|img)\b[^>]*(href|src)=["']([^"']+)["'][^>]*>/gi,
                 (match, tag, attr, url) => match.replace(url, proxify(url, target, proxyBase, enhance))
@@ -675,6 +688,7 @@ console.log("╚██████╔╝██║ ╚████║██║█
 console.log(" ╚═════╝ ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝")
 console.warn("Your IP Address is now being used as a proxy on port 3000")
 console.warn("Oh and please for gods sake get a VPN before tunneling this with idk cloudflared maybe")
+console.warn("we log ips but if you dare friggin dox anyone with it we'll call the fbi on you")
 console.log()
 console.log("getting your ip just so you knew if your ip is proxified")
 console.log(`ok ip is ${await getServerIP()}`)
