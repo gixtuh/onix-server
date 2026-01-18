@@ -36,6 +36,63 @@ function rewriteScriptSrc(html, baseUrl, proxyBase, enhance) {
 }
 
 
+function rewriteStandaloneJS(js, baseUrl, proxyBase, enhance) {
+  return js.replace(
+    /(['"`])((?:https?:\/\/|\/\/|\/|\.\.?\/)[^'"`\s]+)\1/g,
+    (m, quote, url) => {
+      try {
+        // handle protocol-relative URLs
+        if (url.startsWith("//")) {
+          url = new URL("http:" + url).href;
+        }
+
+        const abs = new URL(url, baseUrl).href;
+
+        // skip already proxied
+        if (abs.startsWith(proxyBase)) return m;
+
+        return `${quote}${buildServerProxyUrl(abs, enhance)}${quote}`;
+      } catch {
+        return m;
+      }
+    }
+  );
+}
+
+function rewriteStandaloneCSS(css, baseUrl, proxyBase, enhance) {
+  return css
+    // url(...)
+    .replace(/url\(([^)]+)\)/gi, (_, raw) => {
+      const clean = raw.replace(/['"]/g, "").trim();
+
+      if (
+        clean.startsWith("data:") ||
+        clean.startsWith("blob:")
+      ) {
+        return `url(${raw})`;
+      }
+
+      try {
+        const abs = new URL(clean, baseUrl).href;
+        return `url("${buildServerProxyUrl(abs, enhance)}")`;
+      } catch {
+        return `url(${raw})`;
+      }
+    })
+
+    // @import "...";
+    .replace(/@import\s+(?:url\()?['"]([^'"]+)['"]\)?/gi, (m, url) => {
+      try {
+        const abs = new URL(url, baseUrl).href;
+        return `@import url("${buildServerProxyUrl(abs, enhance)}")`;
+      } catch {
+        return m;
+      }
+    });
+}
+
+
+
 
 
 
@@ -43,56 +100,79 @@ function rewriteScriptSrc(html, baseUrl, proxyBase, enhance) {
 function injectBase(html, enhancer, clientip, serverip) {
   console.log(`BaseInjector: "${enhancer}"`)
   const injection = `
-<style>
-.HEADERIP {
-  opacity: 1;
-  top: 0;
-  position: fixed;
-  width: 100%;
-  padding: 10px;
-  font-family: sans-serif;
-  z-index: 100000;
-  text-align: center;
-  background-color: #e8e8e8ff;
-  color: black;
-  animation: appear 6s ease forwards;
-}
+<script>
+(() => {
+  const host = document.createElement("div");
+  host.id = "__onix_header_host";
 
-@keyframes appear {
-  0% {
-    transform: translateY(-100px);
-  }
+  // make it impossible to interact with
+  host.style.all = "initial";
+  host.style.position = "fixed";
+  host.style.top = "0";
+  host.style.left = "0";
+  host.style.zIndex = "2147483647";
 
-  33.3333% {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateY(0px);
-  }
+  document.documentElement.appendChild(host);
 
-  66.6666% {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateY(0px);
-  }
+  const shadow = host.attachShadow({ mode: "closed" });
 
-  100% {
-    opacity: 0;
-    transform: translateY(-100px);
-  }
-}
-</style>
+  shadow.innerHTML = \`
+    <style>
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px;
+        font-family: sans-serif;
+        text-align: center;
+        background: #e8e8e8ff;
+        color: black;
+        animation: appear 5s ease forwards;
+      }
 
-  <header class="HEADERIP">
-  Onix Secure Browser
-  <hr />
-  ${clientip} --> ${serverip}<br />
-  </header>
+      @keyframes appear {
+        0% { transform: translateY(-100px); opacity: 1; }
+        33% { transform: translateY(0); opacity: 1; }
+        66% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-100px); opacity: 0; }
+      }
+    </style>
+
+    <header>
+      <header>
+  Onix Secure Browser | ${enhancer == undefined ? `<button onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
+  ${enhancer == undefined ? "Switch to unenhanced version" : "Enhance now"}</button><br />You are currently using the ${enhancer == undefined ? "enhanced version" : "unenhanced version"}
+
+      <hr />
+      ${clientip} → ${serverip}
+      <br />
+    </header>
+  \`;
+})();
+</script>
+
+
 <script>
 (() => {
   const PROXY_BASE = "${proxyBase}";
   const urlParams = new URLSearchParams(window.location.search);
   const REAL_BASE = urlParams.get("url");
-  const ENHANCE = urlParams.get("enhance"); // <-- grab it
+  const ENHANCE = "${enhancer}";
+
+  if (ENHANCE && ENHANCE !== "stop") {
+    // Block all WebSocket connections
+    window.WebSocket = class {
+      constructor() {
+        console.error("Onix Secure Browser blocked WebSockets to keep security.\\nDisable enhancement to unblock WebSockets.");
+      }
+      // Mock the common methods so scripts don’t crash
+      send() { console.error("WebSocket disabled"); }
+      close() {}
+      addEventListener() {}
+      removeEventListener() {}
+    };
+  }
 
   if (!REAL_BASE) return;
 
@@ -248,8 +328,17 @@ function buildServerProxyUrl(url, enhance) {
 
 
 function proxify(link, baseUrl, proxyBase, enhance) {
+  function ensureTrailingSlash(url) {
+    return url.endsWith("/") ? url : url + "/";
+  }
+
   try {
-    const abs = new URL(link, baseUrl).href;
+    let abs
+    if (enhance == undefined) {
+      abs = new URL(link, ensureTrailingSlash(baseUrl)).href;
+    } else {
+      abs = new URL(link, baseUrl).href;
+    }
     if (abs.startsWith(proxyBase)) return abs; // already proxied
     const host = new URL(abs).host;
     if (host === new URL(proxyBase).host) return abs;   // skip local redirects
@@ -280,21 +369,6 @@ function rewriteUrls(html, baseUrl, proxyBase, enhance) {
           (_, link) => `url("${proxify(link.replace(/['"]/g, ""), baseUrl, proxyBase, enhance)}")`);
     }
   );
-}
-
-
-function rewriteRelativeUrls(html, realBase, proxyBase) {
-    // match src, href, action, data-src with relative paths starting with /
-    return html.replace(/\b(src|href|action|data-src)=["'](\/[^"']*)["']/gi, (match, attr, path) => {
-        try {
-            // resolve relative path to absolute URL based on realBase
-            const absolute = new URL(path, realBase).href;
-            // wrap with proxy
-            return `${attr}="${proxyBase}/?url=${encodeURIComponent(absolute)}"`;
-        } catch {
-            return match;
-        }
-    });
 }
 
 function rewriteWindowLocation(html, proxyBase, baseUrl, enhance) {
@@ -380,6 +454,8 @@ server.on("upgrade", (req, socket, head) => {
         }, 5000)
     });
 });
+
+
 app.get("/", async (req, res) => {
     const target = req.query.url;
 
@@ -572,9 +648,21 @@ app.get("/", async (req, res) => {
             });
         }
 
-        // JS or other text → send as is
+        // JS
+        if (req.query.enhance == undefined && false) {
+        if (contentType.includes("javascript")) {
+          body = rewriteStandaloneJS(body, target, proxyBase, req.query.enhance);
+        }
+
+        // CSS
+        else if (contentType.includes("text/css")) {
+          body = rewriteStandaloneCSS(body, target, proxyBase, req.query.enhance);
+        }
+      }
+
         res.set("Content-Type", contentType);
         res.send(body);
+
 
     } catch (e) {
         res.status(500).send("fetch failed: " + e.message);
