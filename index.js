@@ -146,17 +146,29 @@ function injectBase(html, enhancer, clientip, serverip, proxyBase) {
       }
 
       @keyframes appear {
-        0% { transform: translateY(-100px); opacity: 1; }
+        0% { transform: translateY(-120px); opacity: 1; }
         33% { transform: translateY(0); opacity: 1; }
         66% { transform: translateY(0); opacity: 1; }
-        100% { transform: translateY(-100px); opacity: 0; }
+        100% { transform: translateY(-120px); opacity: 0; }
       }
     </style>
 
     <header>
-      <header>
-  Onix Secure Browser | ${!enhancer ? `<button class= "switchButton__onix" onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">` : `<button class= "switchButton__onix" onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
-  ${enhancer && enhancer === "stop" ? "Enhance now" : "Switch to unenhanced version."}</button><br />You are currently using the ${enhancer && enhancer === "stop" ? "unenhanced version" : "enhanced version"}
+  Onix Secure Browser | ${!enhancer
+    ? `<button class= "switchButton__onix" onclick="window.location.href=\\\`${proxyBase}/?enhance=stop&url=\${new URLSearchParams(window.location.search).get('url')}\\\`\">`: `<button class= "switchButton__onix" onclick=\"window.location.href=\\\`${proxyBase}/?url=\${new URLSearchParams(window.location.search).get('url')}\\\`">`}
+  ${enhancer === "stop"
+  ? "You should enhance now."
+  : enhancer === "proxyExternal" ? "Switch to enhanced version"
+  : "Switch to unenhanced version"
+}</button><br />
+You're currently using the ${
+  enhancer === "proxyExternal"
+    ? "external script proxying version (VERY unstable but secure)"
+    : enhancer === "stop"
+      ? "unenhanced version"
+      : "enhanced version"
+}
+
 
 
       <hr />
@@ -177,7 +189,7 @@ function injectBase(html, enhancer, clientip, serverip, proxyBase) {
   "${enhancer}" === "undefined" ? undefined : "${enhancer}";
 
 
-  if (ENHANCE && ENHANCE !== "stop") {
+  if (ENHANCE !== "stop") {
     // Block all WebSocket connections
     window.WebSocket = class {
       constructor() {
@@ -524,6 +536,7 @@ app.get("/", async (req, res) => {
             header { animation: appear 0.8s ease-out 0.2s both; background-color: grey; position: fixed; width:100%; bottom:0px; left:0px; align-items:center; padding:10px; text-align:center; }
             input { width:500px; border-radius:5px; margin-bottom:5px }
             #breakwebsiteslol { width:20px; }
+            #verysecureiguess { width:20px; }
             #gotoddg { margin-bottom:5px; }
         </style>
         </head>
@@ -532,11 +545,10 @@ app.get("/", async (req, res) => {
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.3</h2>
+            <h1>Onix</h1><h2>v1.5.4</h2>
             <hr />
             <p>
-                Hello world!<br/><br/>
-                This is <strong>Onix</strong>, AKA Onix Secure Browser, it's a proxy that lets you browse the internet without having to worry about your privacy. All the fetching is done on the proxy server!<br /><br/>
+                This is <strong>Onix</strong>, also known as <strong>Onix Secure Browser</strong>, it's a proxy that lets you browse without worrying about DNS website blocking.<br /><br/>
                 In order to start browsing, add <code>?url=https://example.com</code> after this URL, or you can enter something in any of the 2 input boxes below and browse.<br /><br />
             </p>
             <input id="browse" placeholder="Enter anything then hit Enter to browse on DuckDuckGo"></input>
@@ -544,22 +556,39 @@ app.get("/", async (req, res) => {
             <button id="gotoddg">Go to DuckDuckGo!</button>
             
             <br />
-            <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements (disabling this could pose more risks but might extend compatibility)</button><br /><br />
+            <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements</input><br />
+            <input id="verysecureiguess" type="checkbox">Enable proxying external scripts (more unstable but secure)</input><br /><br />
             Proxy IP Address: ${serverip}<br/><strong style="color:red;">! THIS IP IS SHARED WITH EVERYONE AND DOESN'T CHANGE !</strong>
+            <script>
+              const enhance = document.getElementById("breakwebsiteslol");
+              const proxy = document.getElementById("verysecureiguess");
+
+              function sync(a, b) {
+                a.addEventListener("change", () => {
+                  if (a.checked) {
+                    b.checked = false;
+                  }
+                });
+              }
+
+              sync(enhance, proxy);
+              sync(proxy, enhance);
+            </script>
+
             <script>
                 document.getElementById("browse").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
-                        const enhance = document.getElementById("breakwebsiteslol").checked ? "" : "&enhance=stop";
+                        const enhance = document.getElementById("breakwebsiteslol").checked ? "" : document.getElementById("verysecureiguess").checked ? "&enhance=proxyExternal" : "&enhance=stop";
                         window.location.href = \`${proxyBase}/?url=https://duckduckgo.com/?q=\${document.getElementById("browse").value}\${enhance}\`;
                     }
                 })
                 document.getElementById("gotoddg").addEventListener("click", (event) => {
-                  const enhance = document.getElementById("breakwebsiteslol").checked ? "" : "&enhance=stop";
+                  const enhance = document.getElementById("breakwebsiteslol").checked ? "" : document.getElementById("verysecureiguess").checked ? "&enhance=proxyExternal" : "&enhance=stop";
                   window.location.href = \`${proxyBase}/?url=https://duckduckgo.com\${enhance}\`;
                 })
                 document.getElementById("url").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
-                        const enhance = document.getElementById("breakwebsiteslol").checked ? "" : "&enhance=stop";
+                        const enhance = document.getElementById("breakwebsiteslol").checked ? "" : document.getElementById("verysecureiguess").checked ? "&enhance=proxyExternal" : "&enhance=stop";
                         window.location.href = \`${proxyBase}/?url=\${document.getElementById("url").value}\${enhance}\`;
                     }
                 })
