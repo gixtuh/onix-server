@@ -16,8 +16,10 @@ async function getServerIP() {
   try {
     const res = await fetch("https://ifconfig.me/ip");
     cachedServerIp = (await res.text()).trim();
+    console.log("asdnhajkdhmasjkcdhnvaahndvadhvasajk cached proxy ip address")
     return cachedServerIp;
   } catch {
+    console.log("proxy ip address failed to fetch")
     return "unknown";
   }
 }
@@ -405,7 +407,25 @@ function rewriteUrls(html, baseUrl, proxyBase, enhance) {
             `${attr}=${quote}${proxify(link, baseUrl, proxyBase, enhance)}${quote}`
         )
         .replace(/url\(([^)]+)\)/gi,
-          (_, link) => `url("${proxify(link.replace(/['"]/g, ""), baseUrl, proxyBase, enhance)}")`);
+          (_, link) => `url("${proxify(link.replace(/['"]/g, ""), baseUrl, proxyBase, enhance)}")`)
+        .replace(/\bstyle=(["'])([\s\S]*?)\1/gi, (m, quote, style) => {
+          const rewritten = style.replace(/url\(([^)]+)\)/gi, (_, raw) => {
+            const clean = raw.replace(/['"]/g, "").trim();
+
+            if (clean.startsWith("data:") || clean.startsWith("blob:")) {
+              return `url(${raw})`;
+            }
+
+            try {
+              return `url("${proxify(clean, baseUrl, proxyBase, enhance)}")`;
+            } catch {
+              return `url(${raw})`;
+            }
+          });
+
+          return `style=${quote}${rewritten}${quote}`;
+        })
+
     }
   );
 }
@@ -517,9 +537,9 @@ app.get("/", async (req, res) => {
 let message;
 
 if (req.ip.includes("127.0.0.1") || req.ip === serverIp) {
-  message = "- oh look it's you aka " + (req.ip.includes("127.0.0.1") ? "the localhost " + req.ip : req.ip);
+  message = "- oh look it's you aka " + (req.ip.includes("127.0.0.1") ? "the localhost " + req.ip : " "+req.ip);
 } else {
-  message = " "+req.ip;
+  message = req.ip;
 }
 
 console.log(`it's uhh${message}`);
@@ -558,7 +578,7 @@ console.log(`it's uhh${message}`);
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.5</h2>
+            <h1>Onix</h1><h2>v1.5.6</h2>
             <hr />
             <p>
                 This is <strong>Onix</strong>, also known as <strong>Onix Secure Browser</strong>, it's a proxy that lets you browse without worrying about DNS website blocking.<br /><br/>
