@@ -578,7 +578,7 @@ console.log(`it's uhh${message}`);
         <title>Onix Secure Browser</title>
 
         <div class="container">
-            <h1>Onix</h1><h2>v1.5.6</h2>
+            <h1>Onix</h1><h2>v1.5.7</h2>
             <hr />
             <p>
                 This is <strong>Onix</strong>, also known as <strong>Onix Secure Browser</strong>, it's a proxy that lets you browse without worrying about DNS website blocking.<br /><br/>
@@ -586,7 +586,7 @@ console.log(`it's uhh${message}`);
             </p>
             <input id="browse" placeholder="Enter anything then hit Enter to browse on DuckDuckGo"></input>
             <input id="url" placeholder="Enter URL: "></input>
-            <button id="gotoddg">Go to DuckDuckGo!</button>
+            <button id="gotoddg">Go to DuckDuckGo!</button><button id="gotoimages">Browse images</button>
             
             <br />
             <input id="breakwebsiteslol" type="checkbox" checked>Enable enhancements</input><br />
@@ -618,6 +618,10 @@ console.log(`it's uhh${message}`);
                 document.getElementById("gotoddg").addEventListener("click", (event) => {
                   const enhance = document.getElementById("breakwebsiteslol").checked ? "" : document.getElementById("verysecureiguess").checked ? "&enhance=proxyExternal" : "&enhance=stop";
                   window.location.href = \`${proxyBase}/?url=https://duckduckgo.com\${enhance}\`;
+                })
+                document.getElementById("gotoimages").addEventListener("click", (event) => {
+                  const enhance = document.getElementById("breakwebsiteslol").checked ? "" : document.getElementById("verysecureiguess").checked ? "&enhance=proxyExternal" : "&enhance=stop";
+                  window.location.href = \`${proxyBase}/?url=https://images.google.com\${enhance}\`;
                 })
                 document.getElementById("url").addEventListener("keydown", (event) => {
                     if (event.key == "Enter") {
