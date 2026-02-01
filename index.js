@@ -632,7 +632,7 @@ console.log(`it's uhh${message}`);
             </script>
         </div>
         <header>
-                This project is currently in beta! Expect bugs.<br />Onix v1.6 is officially out! This is now the old version, and we recommend you switch to Onix v1.6 at <a href="https://tinyurl.com/onixsb">https://tinyurl.com/onixsb</a>.
+                This project is currently in beta! Expect bugs.<br />Onix v1.6 is officially out! This is now the old version, and we recommend you switch to Onix v1.6 at <a href="https://onixsb.share.zrok.io/">https://onixsb.share.zrok.io</a>.
         </header>
 
         </body>
