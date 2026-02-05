@@ -508,7 +508,7 @@ server.on("upgrade", (req, socket, head) => {
             <hr style="width:50%;" />
             <p>Onix Secure Browser's Fetch WebSocket is deprecated.<br/>
             Please use the browser URL<br />
-            ${proxyBase}</p>
+            ${proxyBase} (newer version: https://onixsb.share.zrok.io)</p>
             
             <div class="countdown">You will be disconnected in </div>
         </div>
