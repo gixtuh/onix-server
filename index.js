@@ -632,7 +632,7 @@ console.log(`it's uhh${message}`);
             </script>
         </div>
         <header>
-                Onix Secure Browser has been remade! This is now the old version, and we recommend you switch to our new version at <a href="https://onixsb.share.zrok.io/">https://onixsb.share.zrok.io</a>.
+                Onix Secure Browser has been remade! This is now the old version, and we recommend you switch to our new version at <a href="https://onixsb1.share.zrok.io/">https://onixsb1.share.zrok.io</a>.
         </header>
 
         </body>
